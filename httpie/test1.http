@@ -1,0 +1,30 @@
+###Check HTTP
+GET http://localhost:8080/v1/health
+
+
+### Check CreatePost
+POST http://localhost:8080/v1/posts
+Content-Type: application/json
+
+{
+    "title" : "This is the title",
+    "content" : "This is the content",
+    "tags" : ["tag1"]
+}
+
+###Check GetID
+GET  http://localhost:8080/v1/posts/2
+
+
+###Check Delete
+DELETE http://localhost:8080/v1/posts/3
+
+
+###Check Patch
+Patch http://localhost:8080/v1/posts/8
+Content-Type: application/json
+
+{
+    "content" : "This is Patch change",
+    "title" : "This is Patch change"
+}

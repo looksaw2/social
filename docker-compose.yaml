@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16.3
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB : social
+      POSTGRES_USER : postgres
+      POSTGRES_PASSWORD :  postgres
+      POSTGRES_HOST_AUTH_METHOD : trust
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+volumes:
+  db-data:
+
+  
