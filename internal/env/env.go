@@ -1,9 +1,10 @@
 package env
 
 import (
-	"github.com/joho/godotenv"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 // Init读取.env文件

@@ -13,7 +13,7 @@ Content-Type: application/json
 }
 
 ###Check GetID
-GET  http://localhost:8080/v1/posts/2
+GET  http://localhost:8080/v1/posts/7
 
 
 ###Check Delete
@@ -28,3 +28,26 @@ Content-Type: application/json
     "content" : "This is Patch change",
     "title" : "This is Patch change"
 }
+
+###Check GetUser
+GET http://localhost:8080/v1/users/1
+
+
+###Check Follow
+PUT http://localhost:8080/v1/users/1/follow
+Content-Type: application/json
+
+{
+    "user_id" : 40
+}
+
+### Check Unfollow
+PUT http://localhost:8080/v1/users/40/unfollow
+Content-Type: application/json
+
+{
+    "user_id" : 1
+}
+
+###Check GetFeed
+GET http://localhost:8080/v1/users/feed

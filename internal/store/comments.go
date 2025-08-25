@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 // Comments的模型
@@ -64,4 +65,33 @@ func (s *CommentsStore) GetPostByID(ctx context.Context, postID int64) ([]Commen
 	}
 	return comments, nil
 
+}
+
+// 创建评论
+func (s *CommentsStore) Create(ctx context.Context, comment *Comment) error {
+	//创建的SQL语句
+	query := `
+		INSERT INTO comments (post_id, user_id, content)
+		VALUES( $1, $2 , $3)
+		RETURNING id , created_at, updated_at
+	`
+	//超时控制
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	//执行SQL
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		comment.PostID,
+		comment.UserID,
+		comment.Content,
+	).Scan(
+		&comment.ID,
+		&comment.CreatedAt,
+		&comment.UpdatedAt,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

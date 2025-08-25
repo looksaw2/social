@@ -21,8 +21,15 @@ type Post struct {
 
 	//连接的外表
 	Comments []Comment `json:"comment"`
+	User     User      `json:"user"`
 	//乐观锁
 	Version int64 `json:"version"`
+}
+
+// Post的元数据
+type PostWithMetadata struct {
+	Post
+	CommentCount int `json:"comments_count"`
 }
 
 // post存储
@@ -153,4 +160,71 @@ func (s *PostStore) Update(ctx context.Context, post *Post) error {
 		}
 	}
 	return nil
+}
+
+// 实现接口
+func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, fq PaginationFeedQuery) ([]PostWithMetadata, error) {
+	query := `
+	SELECT 
+		p.id,
+		p.user_id,
+		p.title,
+		p.content,
+		p.created_at,
+		p.updated_at,
+		p.version,
+		p.tags,
+		u.username,
+		COUNT(c.id) AS comments_count
+	FROM posts p
+	LEFT JOIN comments c ON c.post_id = p.id
+	LEFT JOIN users u ON p.user_id = u.id
+	JOIN followers f ON f.follower_id = p.user_id OR p.user_id = $1
+	WHERE f.user_id = $1 OR p.user_id = $1 AND 
+		  (p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%')  AND
+		  (p.tags @> $5 OR $5 = '{}' )
+	GROUP BY p.id , u.username
+	ORDER BY p.created_at ` + fq.Sort + `
+	LIMIT $2 OFFSET $3
+	`
+	//超时控制
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	//执行查询
+	rows, err := s.db.QueryContext(
+		ctx,
+		query,
+		userID,
+		fq.Limit,
+		fq.Offset,
+		fq.Search,
+		pq.Array(fq.Tags),
+	)
+	if err != nil {
+		return nil, err
+	}
+	//关闭资源
+	defer rows.Close()
+	var feed []PostWithMetadata
+	//开始遍历
+	for rows.Next() {
+		var post PostWithMetadata
+		err := rows.Scan(
+			&post.ID,
+			&post.UserID,
+			&post.Title,
+			&post.Content,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&post.Version,
+			pq.Array(&post.Tags),
+			&post.User.Username,
+			&post.CommentCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		feed = append(feed, post)
+	}
+	return feed, nil
 }
