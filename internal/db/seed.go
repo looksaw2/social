@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,102 +15,102 @@ var randomUser = []store.User{
 	{
 		Username: "john_doe",
 		Email:    "john.doe@example.com",
-		Password: "SecurePass123!",
+		//Password: "SecurePass123!",
 	},
 	{
 		Username: "jane_smith",
 		Email:    "jane.smith@example.com",
-		Password: "J@nePassword456",
+		//Password: "J@nePassword456",
 	},
 	{
 		Username: "mike_jones",
 		Email:    "mike.jones@example.com",
-		Password: "MikeSecure789!",
+		//Password: "MikeSecure789!",
 	},
 	{
 		Username: "sarah_wilson",
 		Email:    "sarah.wilson@example.com",
-		Password: "S@rahPass2024",
+		//Password: "S@rahPass2024",
 	},
 	{
 		Username: "david_brown",
 		Email:    "david.brown@example.com",
-		Password: "BrownDavid!123",
+		//Password: "BrownDavid!123",
 	},
 	{
 		Username: "emily_taylor",
 		Email:    "emily.taylor@example.com",
-		Password: "TaylorEm!789",
+		//Password: "TaylorEm!789",
 	},
 	{
 		Username: "chris_miller",
 		Email:    "chris.miller@example.com",
-		Password: "MillerChris@456",
+		//Password: "MillerChris@456",
 	},
 	{
 		Username: "lisa_anderson",
 		Email:    "lisa.anderson@example.com",
-		Password: "L!saAnders0n",
+		//Password: "L!saAnders0n",
 	},
 	{
 		Username: "alex_thomas",
 		Email:    "alex.thomas@example.com",
-		Password: "Th0masAlex!",
+		//Password: "Th0masAlex!",
 	},
 	{
 		Username: "amy_roberts",
 		Email:    "amy.roberts@example.com",
-		Password: "R0bertsAmy#",
+		//Password: "R0bertsAmy#",
 	},
 	{
 		Username: "kevin_martin",
 		Email:    "kevin.martin@example.com",
-		Password: "Kev!nMartin2024",
+		//Password: "Kev!nMartin2024",
 	},
 	{
 		Username: "olivia_clark",
 		Email:    "olivia.clark@example.com",
-		Password: "0liviaClark$",
+		//Password: "0liviaClark$",
 	},
 	{
 		Username: "ryan_lewis",
 		Email:    "ryan.lewis@example.com",
-		Password: "LewisRyan@123",
+		//Password: "LewisRyan@123",
 	},
 	{
 		Username: "sophia_lee",
 		Email:    "sophia.lee@example.com",
-		Password: "LeeSophia!456",
+		//Password: "LeeSophia!456",
 	},
 	{
 		Username: "tyler_wright",
 		Email:    "tyler.wright@example.com",
-		Password: "Wr!ghtTyler789",
+		//Password: "Wr!ghtTyler789",
 	},
 	{
 		Username: "mia_hall",
 		Email:    "mia.hall@example.com",
-		Password: "MiaH@ll2024",
+		//Password: "MiaH@ll2024",
 	},
 	{
 		Username: "jason_king",
 		Email:    "jason.king@example.com",
-		Password: "K!ngJason123",
+		//Password: "K!ngJason123",
 	},
 	{
 		Username: "hannah_scott",
 		Email:    "hannah.scott@example.com",
-		Password: "Sc0ttHannah!",
+		//Password: "Sc0ttHannah!",
 	},
 	{
 		Username: "nathan_green",
 		Email:    "nathan.green@example.com",
-		Password: "GreenN@than456",
+		//Password: "GreenN@than456",
 	},
 	{
 		Username: "grace_adams",
 		Email:    "grace.adams@example.com",
-		Password: "AdamsGr@ce789",
+		//Password: "AdamsGr@ce789",
 	},
 }
 
@@ -190,17 +191,21 @@ var (
 )
 
 // 数据库脚本
-func Seed(store *store.Storage) {
+func Seed(store *store.Storage, db *sql.DB) {
 	ctx := context.Background()
 	//得到随机的users数据
 	users := generateUsers(10)
+	tx, _ := db.BeginTx(ctx, nil)
 	//创建随机的用户
 	for _, user := range users {
-		if err := store.Users.Create(ctx, user); err != nil {
+		if err := store.Users.Create(ctx, tx, user); err != nil {
+			_ = tx.Rollback()
 			log.Printf("Error creating user is %v\n", err)
 			return
 		}
 	}
+	//进行tx提交
+	tx.Commit()
 	//创建随机的Post
 	posts := generatePosts(200, users)
 	for _, post := range posts {
@@ -227,7 +232,6 @@ func generateUsers(nums int) []*store.User {
 		users[i] = &store.User{
 			Username: randomUser[rand.Intn(len(randomUser))].Username + fmt.Sprintf("%d%d%d", i, i, i),
 			Email:    fmt.Sprintf("%d%d%d", i, i, i) + randomUser[rand.Intn(len(randomUser))].Email,
-			Password: "656656",
 		}
 	}
 	return users

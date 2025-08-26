@@ -51,3 +51,18 @@ Content-Type: application/json
 
 ###Check GetFeed
 GET http://localhost:8080/v1/users/feed
+
+
+###Check Aunthentication User
+POST http://localhost:8080/v1/authentication/user
+Content-Type: application/json
+
+{
+    "email" : "looksawliu4@iCloud.com",
+    "password" : "looksaw4",
+    "username" : "looksaw4"
+}
+
+
+###Check
+PUT http://localhost:8080/v1/users/activate/e23aff79-5b92-479d-a67b-c23b5e54caf9

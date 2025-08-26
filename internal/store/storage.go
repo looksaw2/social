@@ -8,9 +8,11 @@ import (
 )
 
 var (
-	ErrNotFound   = errors.New("resource not found")
-	QueryDuration = time.Second * 5
-	ErrConflict   = errors.New("resource already exists")
+	ErrNotFound          = errors.New("resource not found")
+	QueryDuration        = time.Second * 5
+	ErrConflict          = errors.New("resource already exists")
+	ErrDuplicateEmail    = errors.New("duplicate email")
+	ErrDuplicateUsername = errors.New("duplicate username")
 )
 
 type Storage struct {
@@ -29,8 +31,11 @@ type Storage struct {
 	}
 	//User接口
 	Users interface {
-		Create(context.Context, *User) error
+		Create(context.Context, *sql.Tx, *User) error
 		GetByID(context.Context, int64) (*User, error)
+		CreateAndInvite(context.Context, *User, string, time.Duration) error
+		Activate(context.Context, string) error
+		Delete(context.Context, int64) error
 	}
 	//Comments接口
 	Comment interface {
@@ -62,4 +67,21 @@ func NewPostgreStorage(db *sql.DB) *Storage {
 			db: db,
 		},
 	}
+}
+
+// 数据库事务
+func withTx(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
+	//创建事务
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	//执行事务
+	if err := fn(tx); err != nil {
+		//失败回滚
+		_ = tx.Rollback()
+		return err
+	}
+	//提交
+	return tx.Commit()
 }

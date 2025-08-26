@@ -31,3 +31,6 @@ seed:
 .PHONY: gen-docs
 gen-docs:
 	@swag init -g ./api/main.go -d cmd,internal && swag fmt 
+
+
+"e23aff79-5b92-479d-a67b-c23b5e54caf9"

@@ -19,6 +19,20 @@ type FollwerUser struct {
 }
 
 // 处理/users/{userID}的GET请求
+
+// GetUser godoc
+//
+//	@Summary		Fetches a user profile
+//	@Description	get string by ID
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int	true	"User ID"
+//	@Success		200	{object}	store.User
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	//利用中间件的信息
 	user := getUserFromContext(r)
@@ -129,4 +143,26 @@ func (app *application) userContextMiddleware(next http.Handler) http.Handler {
 func getUserFromContext(r *http.Request) *store.User {
 	user, _ := r.Context().Value(userCtx).(*store.User)
 	return user
+}
+
+// 激活用户
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	//从URL中得到token
+	token := chi.URLParam(r, "token")
+	err := app.store.Users.Activate(r.Context(), token)
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			app.notFound(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	//回写
+	if err := app.jsonResponse(w, http.StatusNoContent, ""); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
 }
