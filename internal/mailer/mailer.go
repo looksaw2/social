@@ -16,5 +16,5 @@ type Client interface {
 		username string,
 		email string,
 		data any,
-		isSandbox bool) error
+		isSandbox bool) (int, error)
 }

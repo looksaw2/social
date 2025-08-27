@@ -1,5 +1,6 @@
 ###Check HTTP
 GET http://localhost:8080/v1/health
+Authorization: Basic admin:admin
 
 
 ### Check CreatePost
@@ -58,11 +59,11 @@ POST http://localhost:8080/v1/authentication/user
 Content-Type: application/json
 
 {
-    "email" : "looksawliu4@iCloud.com",
-    "password" : "looksaw4",
-    "username" : "looksaw4"
+    "email" : "xdu2814031084@gmail.com",
+    "password" : "888888",
+    "username" : "looksaw899"
 }
 
 
 ###Check
-PUT http://localhost:8080/v1/users/activate/e23aff79-5b92-479d-a67b-c23b5e54caf9
+PUT http://localhost:8080/v1/users/activate/39cef5a0-9621-4a72-bbaf-5fa11b53118e

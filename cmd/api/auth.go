@@ -75,13 +75,13 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	activateURL := fmt.Sprintf("%s/confirm/%s", app.config.frontEndURL, plainToken)
 	isProdEnv := app.config.env == "production"
 	vars := struct {
-		Username    string
-		ActivateURL string
+		Username      string
+		ActivationURL string
 	}{
-		Username:    user.Username,
-		ActivateURL: activateURL,
+		Username:      user.Username,
+		ActivationURL: activateURL,
 	}
-	err = app.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
+	status, err := app.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
 	if err != nil {
 		//SAGA
 		app.logger.Errorw("error sending  welcome email", "error", err)
@@ -92,10 +92,37 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.internalServerError(w, r, err)
 		return
 	}
+	app.logger.Info("Email sent ", " status code ", status)
 	//回写空的函数
 	if err := app.jsonResponse(w, http.StatusCreated, userWIthToken); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
 
+}
+
+// 发送的创建Token的请求
+type CreateUserTokenPayload struct {
+	Email    string `json:"email" validate:"required,email,max=255"`
+	Password string `json:"password" validate:"required,min=3,max=72"`
+}
+
+// 使用createToken生成token
+func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Request) {
+	// 读取验证发送的请求
+	var payload CreatePostPayload
+	if err := readJSON(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	//通过邮件得到User
+
+	//回写
+	if err := app.jsonResponse(w, http.StatusCreated, nil); err != nil {
+		app.internalServerError(w, r, err)
+	}
 }

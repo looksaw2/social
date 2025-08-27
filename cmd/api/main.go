@@ -1,14 +1,13 @@
 package main
 
 import (
-	"log"
-	"time"
-
 	"github.com/looksaw/social/internal/db"
 	"github.com/looksaw/social/internal/env"
 	"github.com/looksaw/social/internal/mailer"
 	"github.com/looksaw/social/internal/store"
 	"go.uber.org/zap"
+	"log"
+	"time"
 )
 
 // 版本号
@@ -48,14 +47,25 @@ func main() {
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
 		},
 		//前端配置
-		frontEndURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
+		frontEndURL: env.GetString("FRONTEND_URL", "http://localhost:5173"),
 		env:         env.GetString("ENV", "development"),
 		//邮件配置
 		mail: mailConfig{
 			exp:       time.Hour * 24 * 3,
-			fromEmail: env.GetString("FROM_EMAIL", ""),
+			fromEmail: env.GetString("FROM_EMAIL", "hello@demomailtrap.co"),
 			sendGrid: sendGridConfig{
 				apiKey: env.GetString("SENDGRID_API_KEY", ""),
+			},
+			//mailTrip设置
+			mailTrip: mailTripConfig{
+				apiKey: env.GetString("MAILTRIP_API_KEY", ""),
+			},
+		},
+		//认证的基本设置
+		auth: authConfig{
+			basic: basicConfig{
+				username: env.GetString("AUTH_BASIC_USERNAME", "admin"),
+				pass:     env.GetString("AUTH_BASIC_PASS", "admin"),
 			},
 		},
 	}
@@ -75,7 +85,11 @@ func main() {
 	defer db.Close()
 	logger.Info("database connection pool established")
 	//新建mail
-	mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
+	//Send grid mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
+	mailtrap, err := mailer.NewMailTrapClient(cfg.mail.mailTrip.apiKey, cfg.mail.fromEmail)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	//初始化存储
 	store := store.NewPostgreStorage(db)
 	//初始化application
@@ -83,7 +97,7 @@ func main() {
 		config: cfg,
 		store:  store,
 		logger: logger,
-		mailer: mailer,
+		mailer: mailtrap,
 	}
 	logger.Fatal(app.run(app.mount()))
 }

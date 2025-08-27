@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 
 	"github.com/looksaw/social/docs"
@@ -30,17 +31,34 @@ type config struct {
 	env         string     //是什么环境
 	apiURL      string     //Swagger用的
 	mail        mailConfig // mail的配置
-	frontEndURL string
+	frontEndURL string     //前端的URL
+	auth        authConfig //认证设计
+}
+
+type authConfig struct {
+	basic basicConfig
+}
+
+type basicConfig struct {
+	username string
+	pass     string
 }
 
 // mail的相关配置
 type mailConfig struct {
 	fromEmail string
 	sendGrid  sendGridConfig
+	mailTrip  mailTripConfig
 	exp       time.Duration
 }
 
+// Send Grid的相关配置
 type sendGridConfig struct {
+	apiKey string
+}
+
+// mailTrip的配置
+type mailTripConfig struct {
 	apiKey string
 }
 
@@ -56,13 +74,24 @@ type dbConfig struct {
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 	//使用中间件
+	//使用CORS
+	r.Use(cors.Handler(cors.Options{
+		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
+		AllowedOrigins: []string{"https://*", "http://*"},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
 	//使用路由
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.healthCheck)
+		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheck)
 		//Swagger文档
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
@@ -105,6 +134,8 @@ func (app *application) mount() http.Handler {
 		r.Route("/authentication", func(r chi.Router) {
 			//注册函数
 			r.Post("/user", app.registerUserHandler)
+			//得到token
+			r.Post("/token", app.createTokenHandler)
 		})
 	})
 	return r
