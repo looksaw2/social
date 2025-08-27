@@ -1,13 +1,15 @@
 package main
 
 import (
+	"log"
+	"time"
+
+	"github.com/looksaw/social/internal/auth"
 	"github.com/looksaw/social/internal/db"
 	"github.com/looksaw/social/internal/env"
 	"github.com/looksaw/social/internal/mailer"
 	"github.com/looksaw/social/internal/store"
 	"go.uber.org/zap"
-	"log"
-	"time"
 )
 
 // 版本号
@@ -67,6 +69,11 @@ func main() {
 				username: env.GetString("AUTH_BASIC_USERNAME", "admin"),
 				pass:     env.GetString("AUTH_BASIC_PASS", "admin"),
 			},
+			token: tokenConfig{
+				secret: env.GetString("AUTH_TOKEN_SECRET", "example"),
+				exp:    time.Hour * 24 * 3,
+				iss:    "gophersocial",
+			},
 		},
 	}
 	//初始化结构化logger
@@ -87,6 +94,9 @@ func main() {
 	//新建mail
 	//Send grid mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
 	mailtrap, err := mailer.NewMailTrapClient(cfg.mail.mailTrip.apiKey, cfg.mail.fromEmail)
+	//创建验证服务
+	jwtAuthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.iss, cfg.auth.token.iss)
+
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -94,10 +104,11 @@ func main() {
 	store := store.NewPostgreStorage(db)
 	//初始化application
 	app := &application{
-		config: cfg,
-		store:  store,
-		logger: logger,
-		mailer: mailtrap,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        mailtrap,
+		authenticator: jwtAuthenticator,
 	}
 	logger.Fatal(app.run(app.mount()))
 }

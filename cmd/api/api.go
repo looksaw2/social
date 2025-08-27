@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/looksaw/social/docs"
+	"github.com/looksaw/social/internal/auth"
 	"github.com/looksaw/social/internal/mailer"
 	"github.com/looksaw/social/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -18,10 +19,11 @@ import (
 
 // application的struct，包含了必要的信息
 type application struct {
-	config config             //配置属性
-	store  *store.Storage     //存储属性
-	logger *zap.SugaredLogger //结构化的LOG
-	mailer mailer.Client      //发送mail的客户端
+	config        config             //配置属性
+	store         *store.Storage     //存储属性
+	logger        *zap.SugaredLogger //结构化的LOG
+	mailer        mailer.Client      //发送mail的客户端
+	authenticator auth.Authenticator //认证的类
 }
 
 // config的配置
@@ -37,6 +39,13 @@ type config struct {
 
 type authConfig struct {
 	basic basicConfig
+	token tokenConfig
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 
 type basicConfig struct {
