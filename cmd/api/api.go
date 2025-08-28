@@ -107,6 +107,8 @@ func (app *application) mount() http.Handler {
 
 		//post路由
 		r.Route("/posts", func(r chi.Router) {
+			//进行Token的验证
+			r.Use(app.AuthTokenMiddleware)
 			//创建Post
 			r.Post("/", app.createPostHandler)
 			//得到对应ID的Post
@@ -116,9 +118,9 @@ func (app *application) mount() http.Handler {
 				//GET方法
 				r.Get("/", app.getPostHandler)
 				//Delete方法
-				r.Delete("/", app.deletePostHandler)
+				r.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
 				//PAtch方法
-				r.Patch("/", app.updatePostHandler)
+				r.Patch("/", app.checkPostOwnership("moderator", app.updatePostHandler))
 			})
 		})
 		//User的路由
@@ -126,7 +128,7 @@ func (app *application) mount() http.Handler {
 			r.Put("/activate/{token}", app.activateUserHandler)
 			r.Route("/{userID}", func(r chi.Router) {
 				//中间件
-				r.Use(app.userContextMiddleware)
+				r.Use(app.AuthTokenMiddleware)
 				//得到用户信息
 				r.Get("/", app.getUserHandler)
 				//关注某人
@@ -136,6 +138,7 @@ func (app *application) mount() http.Handler {
 			})
 			//目前没有身份验证，姑且这样
 			r.Group(func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})

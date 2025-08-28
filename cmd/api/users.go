@@ -47,15 +47,14 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 // 关注某人的API
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	followerUser := getUserFromContext(r)
-	//临时的措施
-	var payload FollwerUser
-	if err := readJSON(w, r, &payload); err != nil {
+	followedID, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 	//写入followers表
 	ctx := r.Context()
-	if err := app.store.Followers.Follow(ctx, followerUser.ID, payload.UserID); err != nil {
+	if err := app.store.Followers.Follow(ctx, followerUser.ID, followedID); err != nil {
 		switch err {
 		case store.ErrConflict:
 			app.conflictResponse(w, r, err)
@@ -74,20 +73,15 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 
 // 解除对某人的关注
 func (app *application) unFollowUserHandler(w http.ResponseWriter, r *http.Request) {
-	unfollowerUser := getUserFromContext(r)
-	if err := app.jsonResponse(w, http.StatusOK, nil); err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-	//临时的措施
-	var payload FollwerUser
-	if err := readJSON(w, r, &payload); err != nil {
+	followerUser := getUserFromContext(r)
+	unfollowedID, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 	//写入followers表
 	ctx := r.Context()
-	if err := app.store.Followers.Unfollow(ctx, unfollowerUser.ID, payload.UserID); err != nil {
+	if err := app.store.Followers.Unfollow(ctx, followerUser.ID, unfollowedID); err != nil {
 		switch err {
 		case store.ErrConflict:
 			app.conflictResponse(w, r, err)
@@ -98,7 +92,6 @@ func (app *application) unFollowUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	//回写
-
 	if err := app.jsonResponse(w, http.StatusOK, nil); err != nil {
 		app.internalServerError(w, r, err)
 		return

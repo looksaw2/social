@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -153,4 +156,46 @@ func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 	if err := app.jsonResponse(w, http.StatusCreated, token); err != nil {
 		app.internalServerError(w, r, err)
 	}
+}
+
+// 对于发送过来的Token进行验证
+func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//得到头部
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			app.unauthorizedResponse(w, r, fmt.Errorf("authorization header is missing"))
+			return
+		}
+		//解析头部
+		parts := strings.Split(authHeader, " ") // authorization: Bearer <token>
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			app.unauthorizedResponse(w, r, fmt.Errorf("authorization header is malformed "))
+			return
+		}
+		token := parts[1]
+		//验证token
+		jwtToken, err := app.authenticator.ValidateToken(token)
+		if err != nil {
+			app.unauthorizedResponse(w, r, err)
+			return
+		}
+		//得到claims
+		claims, _ := jwtToken.Claims.(jwt.MapClaims)
+		//得到userID
+		userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
+		if err != nil {
+			app.unauthorizedResponse(w, r, err)
+			return
+		}
+		ctx := r.Context()
+		user, err := app.store.Users.GetByID(ctx, userID)
+		if err != nil {
+			app.unauthorizedResponse(w, r, err)
+			return
+		}
+		//写入上下文
+		ctx = context.WithValue(ctx, userCtx, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

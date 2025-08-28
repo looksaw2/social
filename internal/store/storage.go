@@ -50,6 +50,10 @@ type Storage struct {
 		Follow(context.Context, int64, int64) error
 		Unfollow(context.Context, int64, int64) error
 	}
+	//角色表
+	Roles interface {
+		GetByName(context.Context, string) (*Role, error)
+	}
 }
 
 // 初始化PG存储
@@ -65,6 +69,9 @@ func NewPostgreStorage(db *sql.DB) *Storage {
 			db: db,
 		},
 		Followers: &FollowerStorage{
+			db: db,
+		},
+		Roles: &RoleStorage{
 			db: db,
 		},
 	}

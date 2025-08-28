@@ -67,3 +67,34 @@ Content-Type: application/json
 
 ###Check
 PUT http://localhost:8080/v1/users/activate/39cef5a0-9621-4a72-bbaf-5fa11b53118e
+
+
+###Get Token
+POST http://localhost:8080/v1/authentication/token
+Content-Type: application/json
+
+{
+    "email" : "xdu2814031084@gmail.com",
+    "password" : "888888"
+}
+
+
+###加入身份验证之后的Post
+###首先先要得到token
+POST http://localhost:8080/v1/authentication/token
+Content-Type: application/json
+
+{
+    "email" : "xdu2814031084@gmail.com",
+    "password" : "888888"
+}
+### 之后开始发帖
+POST http://localhost:8080/v1/posts
+Content-Type: application/json
+Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJnb3BoZXJzb2NpYWwiLCJleHAiOjE3NTY2MzQwNDUsImlhdCI6MTc1NjM3NDg0NSwiaXNzIjoiZ29waGVyc29jaWFsIiwibmJmIjoxNzU2Mzc0ODQ1LCJzdWIiOjY5fQ.F3q15D_TIvop7KsPVP2WH6nrcmVB0FA91mtZLtvT1m8
+
+{
+    "title" : "This is the title",
+    "content" : "This is the content",
+    "tags" : ["tag1"]
+}

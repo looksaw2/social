@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/looksaw/social/internal/store"
 )
 
 // 基础的Basic 认证
@@ -39,8 +42,41 @@ func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			//结束中间间
+			//结束中间件
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// 检查权限
+func (app *application) checkPostOwnership(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := getUserFromContext(r)
+		post := getPostFromCtx(r)
+		//是不是自己的帖子
+		if post.UserID == user.ID {
+			next.ServeHTTP(w, r)
+			return
+		}
+		//检查权限
+		allowed, err := app.checkRolePrecedence(r.Context(), user, requiredRole)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		if !allowed {
+			app.followUserHandler(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// 检查权限
+func (app *application) checkRolePrecedence(ctx context.Context, user *store.User, roleName string) (bool, error) {
+	role, err := app.store.Roles.GetByName(ctx, roleName)
+	if err != nil {
+		return false, err
+	}
+	return user.Role.Level > role.Level, nil
 }

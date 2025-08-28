@@ -35,9 +35,9 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	user := getUserFromContext(r)
 	post := &store.Post{
-		//TODO
-		UserID:  1,
+		UserID:  user.ID,
 		Title:   payload.Title,
 		Content: payload.Content,
 		Tags:    payload.Tags,
